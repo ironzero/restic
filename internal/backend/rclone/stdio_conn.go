@@ -1,10 +1,11 @@
 package rclone
 
 import (
-	"log"
 	"net"
 	"os"
 	"os/exec"
+
+	"github.com/restic/restic/internal/debug"
 )
 
 // StdioConn implements a net.Conn via stdin/stdout.
@@ -29,13 +30,12 @@ func (s *StdioConn) Write(p []byte) (int, error) {
 
 // Close closes both streams.
 func (s *StdioConn) Close() error {
-	log.Printf("close server")
+	debug.Log("close server instance")
 	var errs []error
 
-	for _, f := range []func() error{s.stdin.Close, s.stdout.Close, s.cmd.Wait} {
+	for _, f := range []func() error{s.stdin.Close, s.stdout.Close} {
 		err := f()
 		if err != nil {
-			log.Printf("error: %v", err)
 			errs = append(errs, err)
 		}
 	}

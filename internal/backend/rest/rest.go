@@ -62,7 +62,7 @@ func Open(cfg Config, rt http.RoundTripper) (*Backend, error) {
 }
 
 // Create creates a new REST on server configured in config.
-func Create(cfg Config, rt http.RoundTripper) (restic.Backend, error) {
+func Create(cfg Config, rt http.RoundTripper) (*Backend, error) {
 	be, err := Open(cfg, rt)
 	if err != nil {
 		return nil, err

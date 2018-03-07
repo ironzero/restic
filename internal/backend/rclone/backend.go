@@ -69,6 +69,7 @@ func New(cfg Config) (*Backend, error) {
 		}
 	}
 
+	debug.Log("running command: %v, %v", arg0, args)
 	conn, cmd, bg, err := run(arg0, args...)
 	if err != nil {
 		return nil, err
@@ -99,26 +100,12 @@ func New(cfg Config) (*Backend, error) {
 		return nil, errors.Errorf("invalid HTTP response from rclone: %v", res.Status)
 	}
 
+	debug.Log("moving instance to background")
 	bg()
 
-	url, err := url.Parse("http://localhost/")
-	if err != nil {
-		return nil, err
-	}
-	restConfig := rest.Config{
-		Connections: 20,
-		URL:         url,
-	}
-	restBackend, err := rest.Open(restConfig, tr)
-
-	if err != nil {
-		return nil, err
-	}
-
 	be := &Backend{
-		Backend: restBackend,
-		tr:      tr,
-		cmd:     cmd,
+		tr:  tr,
+		cmd: cmd,
 	}
 
 	return be, nil
@@ -126,11 +113,61 @@ func New(cfg Config) (*Backend, error) {
 
 // Open starts an rclone process with the given config.
 func Open(cfg Config) (*Backend, error) {
-	return New(cfg)
+	be, err := New(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	url, err := url.Parse("http://localhost/")
+	if err != nil {
+		return nil, err
+	}
+
+	restConfig := rest.Config{
+		Connections: 20,
+		URL:         url,
+	}
+
+	restBackend, err := rest.Open(restConfig, be.tr)
+	if err != nil {
+		return nil, err
+	}
+
+	be.Backend = restBackend
+	return be, nil
+}
+
+// Create initializes a new restic repo with clone.
+func Create(cfg Config) (*Backend, error) {
+	be, err := New(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	url, err := url.Parse("http://localhost/")
+	if err != nil {
+		return nil, err
+	}
+
+	restConfig := rest.Config{
+		Connections: 20,
+		URL:         url,
+	}
+
+	restBackend, err := rest.Create(restConfig, be.tr)
+	if err != nil {
+		return nil, err
+	}
+
+	be.Backend = restBackend
+	return be, nil
 }
 
 // Close terminates the backend.
 func (be *Backend) Close() error {
+	debug.Log("terminating rclone")
 	be.tr.CloseIdleConnections()
-	return be.cmd.Wait()
+	err := be.cmd.Wait()
+	debug.Log("wait for rclone returned: %v", err)
+	return err
 }
