@@ -58,7 +58,7 @@ func run(command string, args ...string) (*StdioConn, *exec.Cmd, func() error, e
 // New initializes a Backend and starts the process.
 func New(cfg Config) (*Backend, error) {
 	arg0 := "rclone"
-	args := []string{"serve", "restic", "--stdin", cfg.Remote}
+	args := []string{"serve", "restic", "--stdio", cfg.Remote}
 
 	var err error
 
